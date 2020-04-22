@@ -107,13 +107,13 @@ cron.schedule("*/5 * * * *", async () => {
         console.log('topChange', topChange)
         const globalChange = parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex]) - parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex - 3])
         console.log('globalChange', globalChange)
-        const difference = 3
-        if (Math.abs(topChange) > difference && Math.abs(globalChange) > difference && topChange - globalChange !== Math.abs(topChange) - Math.abs(globalChange)) {
+        const minimumminimumDifference = 0.5
+        if (Math.abs(topChange) > minimumDifference && Math.abs(globalChange) > minimumDifference && topChange - globalChange !== Math.abs(topChange) - Math.abs(globalChange)) {
           telegramBot.sendMessage(channelChatId, "Divergence detected");
           console.log(channelChatId, "Divergence detected")
         }
-        else if(Math.abs(topChange) > difference) {
-          telegramBot.sendMessage(channelChatId, "Volatility detected");
+        else if(Math.abs(topChange) > minimumDifference) {
+          telegramBot.sendMessage(channelChatId, `Volatility detected for ${Math.abs(topChange)} change`);
           console.log(channelChatId, "Volatility detected")
         }
       }
