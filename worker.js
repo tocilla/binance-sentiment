@@ -10,6 +10,14 @@ const telegramBot = new TelegramBot(token, {polling: false});
 const channelChatId = '-1001356289454'
 
 let lastInsertedTimeStamp;
+
+let lastVolatilityAlert = 0;
+let lastDivergenceAlert = 0;
+
+const minimumDifference = 0.5
+const divergencePeriod = 12
+const volatilityPeriod = 3
+
 db.serialize(() => {
   db.get("SELECT last_inserted_timestamp FROM metadata", (err, row) => {
     console.log("lastInsertedTimeStamp", row.last_inserted_timestamp);
@@ -99,21 +107,33 @@ cron.schedule("*/5 * * * *", async () => {
         );
         console.log("lastInsertedTimeStamp", lastInsertedTimeStamp);
 
-
         const lastIndex = globalTradersResponse.data.data.xAxis.length - 1
-        console.log('lastIndex', lastIndex)
-        console.log('topLong', topTradersRatioResponse.data.data.series[1].data[lastIndex])
-        const topChange = parseFloat(topTradersRatioResponse.data.data.series[1].data[lastIndex]) - parseFloat(topTradersRatioResponse.data.data.series[1].data[lastIndex - 3])
-        console.log('topChange', topChange)
-        const globalChange = parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex]) - parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex - 3])
-        console.log('globalChange', globalChange)
-        const minimumDifference = 0.5
-        if (Math.abs(topChange) > minimumDifference && Math.abs(globalChange) > minimumDifference && topChange - globalChange !== Math.abs(topChange) - Math.abs(globalChange)) {
+
+        const volatilityTopChange = parseFloat(topTradersRatioResponse.data.data.series[1].data[lastIndex]) - parseFloat(topTradersRatioResponse.data.data.series[1].data[lastIndex - volatilityPeriod])
+        const volatilityGlobalChange = parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex]) - parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex - volatilityPeriod])
+
+        const divergenceTopChange = parseFloat(topTradersRatioResponse.data.data.series[1].data[lastIndex]) - parseFloat(topTradersRatioResponse.data.data.series[1].data[lastIndex - divergencePeriod])
+        const divergenceGlobalChange = parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex]) - parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex - divergencePeriod])
+
+
+        console.log('volatilityTopChange', volatilityTopChange)
+        console.log('volatilityGlobalChange', volatilityGlobalChange)
+
+        console.log('divergenceTopChange', divergenceTopChange)
+        console.log('divergenceGlobalChange', divergenceGlobalChange)
+
+        if (
+            Math.abs(divergenceTopChange) > minimumDifference &&
+            Math.abs(divergenceGlobalChange) > minimumDifference &&
+            divergenceTopChange - divergenceGlobalChange !== Math.abs(divergenceTopChange) - Math.abs(divergenceGlobalChange) &&
+            (lastTimeStamp - lastDivergenceAlert) / 300000 > divergencePeriod
+          ) {
           telegramBot.sendMessage(channelChatId, "Divergence detected");
+          lastDivergenceAlert = lastTimeStamp;
           console.log(channelChatId, "Divergence detected")
         }
-        else if(Math.abs(topChange) > minimumDifference) {
-          telegramBot.sendMessage(channelChatId, `Volatility detected for ${Math.abs(topChange)} change`);
+        else if(Math.abs(volatilityTopChange) > minimumDifference && (lastTimeStamp - lastVolatilityAlert) / 300000 > volatilityPeriod) {
+          telegramBot.sendMessage(channelChatId, `Volatility detected for ${Math.abs(volatilityTopChange)} change`);
           console.log(channelChatId, "Volatility detected")
         }
       }
