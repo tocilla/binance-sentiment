@@ -107,7 +107,7 @@ cron.schedule("*/5 * * * *", async () => {
         console.log('topChange', topChange)
         const globalChange = parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex]) - parseFloat(globalTradersResponse.data.data.series[1].data[lastIndex - 3])
         console.log('globalChange', globalChange)
-        const minimumminimumDifference = 0.5
+        const minimumDifference = 0.5
         if (Math.abs(topChange) > minimumDifference && Math.abs(globalChange) > minimumDifference && topChange - globalChange !== Math.abs(topChange) - Math.abs(globalChange)) {
           telegramBot.sendMessage(channelChatId, "Divergence detected");
           console.log(channelChatId, "Divergence detected")
